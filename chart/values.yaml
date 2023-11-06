@@ -1,0 +1,111 @@
+global:
+  domain: null
+  imagePullSecret:
+    {}
+srv:
+  bindings:
+    auth:
+      serviceInstanceName: xsuaa
+    service-manager:
+      serviceInstanceName: service-manager
+  image:
+    repository: <your-container-registry>/charlie-srv
+    tag: latest
+  resources:
+    limits:
+      ephemeral-storage: 1G
+      memory: 500M
+    requests:
+      ephemeral-storage: 1G
+      cpu: 500m
+      memory: 500M
+  health:
+    liveness:
+      path: /
+    readiness:
+      path: /
+sidecar:
+  bindings:
+    auth:
+      serviceInstanceName: xsuaa
+    saas-registry:
+      serviceInstanceName: saas-registry
+    service-manager:
+      serviceInstanceName: service-manager
+  image:
+    repository: <your-container-registry>/charlie-sidecar
+    tag: latest
+  resources:
+    limits:
+      ephemeral-storage: 1G
+      memory: 500M
+    requests:
+      ephemeral-storage: 1G
+      cpu: 500m
+      memory: 500M
+  health:
+    liveness:
+      path: /
+    readiness:
+      path: /
+  envFrom:
+    - configMapRef:
+        name: "{{ .Release.Name }}-mtxs-configmap"
+approuter:
+  bindings:
+    auth:
+      serviceInstanceName: xsuaa
+  image:
+    repository: <your-container-registry>/charlie-approuter
+    tag: latest
+  resources:
+    limits:
+      ephemeral-storage: 1G
+      memory: 500M
+    requests:
+      ephemeral-storage: 1G
+      cpu: 500m
+      memory: 500M
+  health:
+    liveness:
+      path: /
+    readiness:
+      path: /
+  envFrom:
+    - configMapRef:
+        name: "{{ .Release.Name }}-approuter-configmap"
+xsuaa:
+  serviceOfferingName: xsuaa
+  servicePlanName: application
+  parameters:
+    xsappname: charlie
+    tenant-mode: shared
+    oauth2-configuration:
+      redirect-uris:
+        - https://*.<your-cluster-domain>/**
+service-manager:
+  serviceOfferingName: service-manager
+  servicePlanName: container
+saas-registry:
+  serviceOfferingName: saas-registry
+  servicePlanName: application
+  parametersFrom:
+    - secretKeyRef:
+        name: "{{ .Release.Name }}-saas-registry-secret"
+        key: parameters
+saasRegistryParameters:
+  xsappname: charlie
+  appName: charlie
+  displayName: charlie
+  description: A simple CAP project.
+  category: "CAP Application"
+  bindSidecar: true
+  appUrls:
+    getDependencies: "/-/cds/saas-provisioning/dependencies"
+    onSubscription: "/-/cds/saas-provisioning/tenant/{tenantId}"
+    onSubscriptionAsync: true
+    onUnSubscriptionAsync: true
+    onUpdateDependenciesAsync: true
+    callbackTimeoutMillis: 300000
+backendDestinations:
+  {}
